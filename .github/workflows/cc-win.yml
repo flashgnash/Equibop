@@ -1,0 +1,44 @@
+name: CC Windows
+
+# Self-contained Windows build for the ClosedCaptions test fork. Builds the NSIS
+# installer and publishes it to THIS fork's own releases (default token, no
+# secrets, no upstream interaction). Manual trigger only.
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    win:
+        runs-on: windows-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: oven-sh/setup-bun@v2
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Build
+              run: bun run build
+
+            - name: Electron Builder (Windows, unsigned)
+              run: bun run electron-builder --win --publish never
+
+            - name: Upload installer artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: equibop-windows
+                  path: dist/*.exe
+
+            - name: Publish installer to this fork's release
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  gh release delete cc-win -R "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+                  gh release create cc-win dist/*.exe \
+                    -R "$GITHUB_REPOSITORY" --latest \
+                    --title "Equibop + ClosedCaptions (test build)" \
+                    --notes "Unsigned test build. On first run Windows SmartScreen may warn: click More info -> Run anyway. Captions engine + model download automatically on first use."
