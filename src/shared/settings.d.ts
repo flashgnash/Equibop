@@ -77,6 +77,12 @@ export interface State {
 
     equicordDir?: string;
 
+    // Identifies the fork release asset the installed equicord.asar came
+    // from (tag + asset id + updated_at). Startup compares it against the
+    // live release and re-downloads on mismatch, so pushing a new CC build
+    // to the fork updates every install automatically.
+    equicordAsarMarker?: string;
+
     launchArguments?: string;
 
     updater?: {

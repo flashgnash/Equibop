@@ -8,17 +8,21 @@ import { existsSync } from "fs";
 import { join } from "path";
 
 import { USER_AGENT } from "../constants";
+import { State } from "../settings";
 import { VENCORD_DIR } from "../vencordDir";
 import { downloadFile, fetchie } from "./http";
 
 const API_BASE = "https://api.github.com";
+const ASAR_RELEASE_REPO = "flashgnash/Equicord";
 
 export interface ReleaseData {
     name: string;
     tag_name: string;
     html_url: string;
     assets: Array<{
+        id: number;
         name: string;
+        updated_at: string;
         browser_download_url: string;
     }>;
 }
@@ -53,4 +57,31 @@ export async function ensureVencordFiles() {
     if (existsSync(VENCORD_DIR)) return;
 
     await downloadVencordAsar();
+}
+
+// Like ensureVencordFiles, but also re-downloads when the FORK RELEASE has
+// changed since the installed asar was fetched: every CI publish re-creates
+// the release asset (new id + updated_at), so comparing that against a stored
+// marker makes "push a new build" reach every install on its next launch —
+// no manual Force Update needed. Offline / API failure falls back to the
+// plain exists check so startup never breaks.
+export async function ensureLatestVencordFiles() {
+    try {
+        const res = await githubGet(`/repos/${ASAR_RELEASE_REPO}/releases/latest`);
+        const release: ReleaseData = await res.json();
+        const asset = release.assets.find(a => a.name === "equibop.asar");
+        if (asset) {
+            const marker = `${release.tag_name}:${asset.id}:${asset.updated_at}`;
+            if (marker !== State.store.equicordAsarMarker || !existsSync(VENCORD_DIR)) {
+                console.log(`Equicord bundle outdated (have ${State.store.equicordAsarMarker ?? "none"}, latest ${marker}) — updating`);
+                await downloadVencordAsar();
+                State.store.equicordAsarMarker = marker;
+            }
+            return;
+        }
+    } catch (e) {
+        console.error("Equicord bundle update check failed, using existing files", e);
+    }
+
+    await ensureVencordFiles();
 }

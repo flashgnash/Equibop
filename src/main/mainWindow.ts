@@ -39,7 +39,7 @@ import { destroyTray, initTray } from "./tray";
 import { clearData } from "./utils/clearData";
 import { makeLinksOpenExternally } from "./utils/makeLinksOpenExternally";
 import { applyDeckKeyboardFix, askToApplySteamLayout, isDeckGameMode } from "./utils/steamOS";
-import { downloadVencordAsar, ensureVencordFiles } from "./utils/vencordLoader";
+import { downloadVencordAsar, ensureLatestVencordFiles } from "./utils/vencordLoader";
 import { VENCORD_DIR } from "./vencordDir";
 
 let isQuitting = false;
@@ -514,7 +514,7 @@ export async function createWindows() {
     }
 
     addSplashLog();
-    await ensureVencordFiles();
+    await ensureLatestVencordFiles();
     runVencordMain();
 
     addSplashLog();
